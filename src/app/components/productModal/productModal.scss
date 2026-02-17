@@ -21,7 +21,7 @@
   background: var(--surface);
   border-radius: 20px;
   padding: 18px;
-  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   animation: popIn 220ms cubic-bezier(.2,.8,.2,1);
 }
 
@@ -42,7 +42,7 @@
 
   transition: background 140ms ease, transform 140ms ease;
 
-  &:hover { background: rgba(37,99,235,0.08); }
+  &:hover { background: rgba(37, 99, 235, 0.08); }
   &:active { transform: scale(0.96); }
 }
 
@@ -75,25 +75,24 @@
   gap: 10px;
 }
 
-.pmodal__title {
-  margin: 0;
-}
+.pmodal__title { margin: 0; }
 
-.pmodal__rating {
-  display: inline-flex;
-  align-items: center;
+.pmodal__chips {
+  display: flex;
   gap: 8px;
-
-  i { color: #f59e0b; }
-
-  span {
-    font-weight: 900;
-  }
 }
 
-.pmodal__muted {
-  color: var(--muted);
-  font-weight: 700;
+.pmodal__chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--primary);
+  font-weight: 900;
+
+  i { font-size: 14px; }
 }
 
 .pmodal__price {
@@ -193,12 +192,12 @@
 
 @keyframes popIn {
   from { transform: translate(-50%, -60%) scale(.96); opacity: 0; }
-  to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
 
 @media (max-width: 768px) {

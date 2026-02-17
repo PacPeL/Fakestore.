@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loadCart, saveCart, addToCart } from "../../services/cartService";
+import { useStore } from "../../store/storeProvider"; 
 import "./productModal.scss";
 
 const ProductModal = ({ product, onClose }) => {
   const navigate = useNavigate();
+  const { addToCart } = useStore();
+
   const [qty, setQty] = useState(1);
 
   if (!product) return null;
 
+  // ✅ bloquear scroll + cerrar con ESC
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -24,15 +27,17 @@ const ProductModal = ({ product, onClose }) => {
     };
   }, [onClose]);
 
-  const total = (product.price * qty).toFixed(2);
+  const title = product.title ?? product.name ?? "Product";
+  const category = product.category ?? null;
+
+  const safePrice = Number(product.price || 0);
+  const total = (safePrice * qty).toFixed(2);
 
   const increase = () => setQty((q) => q + 1);
   const decrease = () => setQty((q) => Math.max(1, q - 1));
 
   const handleAdd = () => {
-    const cart = loadCart();
-    const updated = addToCart(cart, product, qty);
-    saveCart(updated);
+    addToCart(product, qty);
     onClose();
   };
 
@@ -56,32 +61,41 @@ const ProductModal = ({ product, onClose }) => {
         </button>
 
         <div className="pmodal__content">
+          {/* IMAGE */}
           <div className="pmodal__imgWrap">
-            <img src={product.image} alt={product.title} />
+            <img src={product.image} alt={title} />
           </div>
 
+          {/* INFO */}
           <div className="pmodal__info">
-            <h2 className="pmodal__title">{product.title}</h2>
+            <h2 className="pmodal__title">{title}</h2>
 
-            <div className="pmodal__chips">
-              <span className="chip">
-                <i className="bi bi-tag" /> {product.category}
-              </span>
-            </div>
+            {category && (
+              <div className="pmodal__chips">
+                <span className="pmodal__chip">
+                  <i className="bi bi-tag" />
+                  {category}
+                </span>
+              </div>
+            )}
 
-            <div className="pmodal__price">${product.price.toFixed(2)}</div>
+            <div className="pmodal__price">${safePrice.toFixed(2)}</div>
 
-            <p className="pmodal__desc">{product.description}</p>
+            {product.description && (
+              <p className="pmodal__desc">{product.description}</p>
+            )}
 
             <div className="pmodal__qty">
               <span className="pmodal__label">Quantity</span>
 
               <div className="qtyBox">
-                <button onClick={decrease} aria-label="Decrease">
+                <button onClick={decrease} type="button" aria-label="Decrease quantity">
                   <i className="bi bi-dash" />
                 </button>
+
                 <span>{qty}</span>
-                <button onClick={increase} aria-label="Increase">
+
+                <button onClick={increase} type="button" aria-label="Increase quantity">
                   <i className="bi bi-plus" />
                 </button>
               </div>
@@ -91,6 +105,7 @@ const ProductModal = ({ product, onClose }) => {
               Total: <b>${total}</b>
             </div>
 
+            {/* ✅ gap bonito + botones pro */}
             <div className="pmodal__actions">
               <button className="pmodal__add" onClick={handleAdd} type="button">
                 <i className="bi bi-cart3" />

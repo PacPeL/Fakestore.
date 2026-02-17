@@ -1,26 +1,9 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { loadCart, getCartCount } from "../../services/cartService";
+import { useStore } from "../../store/storeProvider";
 import "./header.scss";
 
 const Header = () => {
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    const updateCart = () => {
-      const cart = loadCart();
-      setCartCount(getCartCount(cart));
-    };
-
-    updateCart();
-    window.addEventListener("cart_updated", updateCart);
-    window.addEventListener("storage", updateCart);
-
-    return () => {
-      window.removeEventListener("cart_updated", updateCart);
-      window.removeEventListener("storage", updateCart);
-    };
-  }, []);
+  const { totalItems } = useStore();
 
   return (
     <header className="topbar">
@@ -40,7 +23,7 @@ const Header = () => {
       </div>
 
       <div className="topbar__search">
-        <input placeholder="Search products..." />
+        <input type="text" placeholder="Search products..." />
         <button type="button" aria-label="Search">
           <i className="bi bi-search" />
         </button>
@@ -53,7 +36,7 @@ const Header = () => {
 
         <Link to="/cart" className="topbar__iconBtn" aria-label="Cart">
           <i className="bi bi-cart3" />
-          {cartCount > 0 && <span className="topbar__badge">{cartCount}</span>}
+          {totalItems > 0 && <span className="topbar__badge">{totalItems}</span>}
         </Link>
       </div>
     </header>
