@@ -45,30 +45,33 @@ const ProductModal = ({ product, onClose }) => {
     <div className="pmodal">
       <div className="pmodal__overlay" onClick={onClose} />
 
-      <div className="pmodal__card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="pmodal__card"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className="pmodal__close" onClick={onClose} aria-label="Close">
           <i className="bi bi-x-lg" />
         </button>
 
         <div className="pmodal__content">
           <div className="pmodal__imgWrap">
-            <img src={product.image} alt={product.name} />
+            <img src={product.image} alt={product.title} />
           </div>
 
           <div className="pmodal__info">
-            <h2 className="pmodal__title">{product.name}</h2>
+            <h2 className="pmodal__title">{product.title}</h2>
 
-            <div className="pmodal__rating">
-              <i className="bi bi-star-fill" />
-              <span>{product.rating ?? 4}</span>
-              <span className="pmodal__muted">/ 5</span>
+            <div className="pmodal__chips">
+              <span className="chip">
+                <i className="bi bi-tag" /> {product.category}
+              </span>
             </div>
 
             <div className="pmodal__price">${product.price.toFixed(2)}</div>
 
-            <p className="pmodal__desc">
-              {product.description || "Quick preview. The full page includes complete details and specs."}
-            </p>
+            <p className="pmodal__desc">{product.description}</p>
 
             <div className="pmodal__qty">
               <span className="pmodal__label">Quantity</span>
@@ -89,12 +92,12 @@ const ProductModal = ({ product, onClose }) => {
             </div>
 
             <div className="pmodal__actions">
-              <button className="pmodal__add" onClick={handleAdd}>
+              <button className="pmodal__add" onClick={handleAdd} type="button">
                 <i className="bi bi-cart3" />
                 Add to cart
               </button>
 
-              <button className="pmodal__link" onClick={goToPage}>
+              <button className="pmodal__link" onClick={goToPage} type="button">
                 <i className="bi bi-box-arrow-up-right" />
                 View full page
               </button>

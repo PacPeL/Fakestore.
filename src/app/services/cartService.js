@@ -22,6 +22,9 @@ export const addToCart = (cart, product, qty = 1) => {
   const safeQty = Math.max(1, Number(qty) || 1);
   const existing = cart.find((i) => i.id === product.id);
 
+  // ✅ compat: si algún día llega "name", lo convertimos
+  const title = product.title ?? product.name ?? "Product";
+
   if (existing) {
     return cart.map((i) =>
       i.id === product.id ? { ...i, qty: i.qty + safeQty } : i
@@ -32,10 +35,11 @@ export const addToCart = (cart, product, qty = 1) => {
     ...cart,
     {
       id: product.id,
-      name: product.name,
+      title,
       price: product.price,
       image: product.image,
       qty: safeQty,
+      category: product.category,
     },
   ];
 };
@@ -45,7 +49,8 @@ export const updateQty = (cart, productId, qty) => {
   return cart.map((i) => (i.id === productId ? { ...i, qty: safeQty } : i));
 };
 
-export const removeFromCart = (cart, productId) => cart.filter((i) => i.id !== productId);
+export const removeFromCart = (cart, productId) =>
+  cart.filter((i) => i.id !== productId);
 
 export const clearCart = () => {
   try {

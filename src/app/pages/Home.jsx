@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../styles/pages/_home.scss";
 import ProductModal from "../components/productModal/ProductModal";
 
@@ -8,17 +8,26 @@ const Home = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // mock products (luego reemplazas por API)
-  const products = Array.from({ length: 9 }).map((_, idx) => ({
-    id: idx + 1,
-    name: `Product ${idx + 1}`,
-    price: 120 + idx * 18,
-    rating: 4,
-    image:
-      "https://images.unsplash.com/photo-1512446816042-444d64126780?auto=format&fit=crop&w=1200&q=70",
-    description:
-      "Quick preview description. Full details will be available in product page and API later.",
-  }));
+  // ✅ mock products (schema real: title/category/description/image/price)
+  // + fallback (name/rating) para no romper mientras migras
+  const products = useMemo(
+    () =>
+      Array.from({ length: 9 }).map((_, idx) => ({
+        id: idx + 1,
+        title: `Product ${idx + 1}`,
+        price: 120 + idx * 18,
+        description:
+          "Quick preview description. Full details will be available in product page and API later.",
+        category: idx % 2 === 0 ? "Smartphones" : "Accessories",
+        image:
+          "https://images.unsplash.com/photo-1512446816042-444d64126780?auto=format&fit=crop&w=1200&q=70",
+        // opcional (si tu UI lo usa todavía)
+        rating: 4,
+        // compat por si aún tienes código que usa name
+        name: `Product ${idx + 1}`,
+      })),
+    []
+  );
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -30,6 +39,9 @@ const Home = () => {
     if (isMobile) setMobileFilters(true);
     else setFiltersOpen((v) => !v);
   };
+
+  const getTitle = (p) => p.title ?? p.name ?? "Product";
+  const getCategory = (p) => p.category ?? "—";
 
   return (
     <div className="shop">
@@ -59,7 +71,11 @@ const Home = () => {
         {/* catalog */}
         <section className="catalog">
           <div className="catalog__top">
-            <button className="filtersToggle" onClick={onFiltersClick} type="button">
+            <button
+              className="filtersToggle"
+              onClick={onFiltersClick}
+              type="button"
+            >
               <i className="bi bi-sliders" />
               <span>Filters</span>
             </button>
@@ -87,19 +103,32 @@ const Home = () => {
                 onClick={() => setSelectedProduct(p)}
               >
                 <div className="card__img">
-                  <img src={p.image} alt={p.name} loading="lazy" />
+                  <img src={p.image} alt={getTitle(p)} loading="lazy" />
                 </div>
 
                 <div className="card__body">
-                  <div className="card__title">{p.name}</div>
+                  <div className="card__title">{getTitle(p)}</div>
 
                   <div className="card__meta">
-                    <span className="stars">
-                      <i className="bi bi-star-fill" />
-                      {p.rating}
-                    </span>
+                    {/* ✅ si quieres mantener rating, lo dejamos */}
+                    {typeof p.rating === "number" ? (
+                      <>
+                        <span className="stars">
+                          <i className="bi bi-star-fill" />
+                          {p.rating}
+                        </span>
+                        <span className="dot">•</span>
+                      </>
+                    ) : null}
+
+                    {/* ✅ category del schema real */}
+                    <span className="dot">{getCategory(p)}</span>
                     <span className="dot">•</span>
-                    <span className="price">${p.price.toFixed(2)}</span>
+
+                    {/* ✅ price seguro */}
+                    <span className="price">
+                      ${Number(p.price || 0).toFixed(2)}
+                    </span>
                   </div>
 
                   <button
@@ -123,19 +152,30 @@ const Home = () => {
       {/* mobile filters panel */}
       {mobileFilters && (
         <div className="filtersModal">
-          <div className="filtersModal__overlay" onClick={() => setMobileFilters(false)} />
+          <div
+            className="filtersModal__overlay"
+            onClick={() => setMobileFilters(false)}
+          />
 
           <div className="filtersModal__panel">
             <div className="filtersModal__header">
               <span>Filters</span>
-              <button onClick={() => setMobileFilters(false)} aria-label="Close filters" type="button">
+              <button
+                onClick={() => setMobileFilters(false)}
+                aria-label="Close filters"
+                type="button"
+              >
                 <i className="bi bi-x-lg" />
               </button>
             </div>
 
             <FiltersContent />
 
-            <button className="filtersModal__apply" onClick={() => setMobileFilters(false)} type="button">
+            <button
+              className="filtersModal__apply"
+              onClick={() => setMobileFilters(false)}
+              type="button"
+            >
               Apply filters
             </button>
           </div>
@@ -157,25 +197,47 @@ const FiltersContent = () => (
   <>
     <div className="filters__section">
       <div className="filters__label">Category</div>
-      <label className="check"><input type="checkbox" /> Smartphones</label>
-      <label className="check"><input type="checkbox" /> Laptops</label>
-      <label className="check"><input type="checkbox" /> Tablets</label>
-      <label className="check"><input type="checkbox" /> Accessories</label>
+      <label className="check">
+        <input type="checkbox" /> Smartphones
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Laptops
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Tablets
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Accessories
+      </label>
     </div>
 
     <div className="filters__section">
       <div className="filters__label">Brand</div>
-      <label className="check"><input type="checkbox" /> Apple</label>
-      <label className="check"><input type="checkbox" /> Samsung</label>
-      <label className="check"><input type="checkbox" /> Xiaomi</label>
-      <label className="check"><input type="checkbox" /> Dell</label>
+      <label className="check">
+        <input type="checkbox" /> Apple
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Samsung
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Xiaomi
+      </label>
+      <label className="check">
+        <input type="checkbox" /> Dell
+      </label>
     </div>
 
     <div className="filters__section">
       <div className="filters__label">Rating</div>
-      <label className="radio"><input name="r" type="radio" /> 5 stars</label>
-      <label className="radio"><input name="r" type="radio" /> 4+ stars</label>
-      <label className="radio"><input name="r" type="radio" /> 3+ stars</label>
+      <label className="radio">
+        <input name="r" type="radio" /> 5 stars
+      </label>
+      <label className="radio">
+        <input name="r" type="radio" /> 4+ stars
+      </label>
+      <label className="radio">
+        <input name="r" type="radio" /> 3+ stars
+      </label>
     </div>
   </>
 );

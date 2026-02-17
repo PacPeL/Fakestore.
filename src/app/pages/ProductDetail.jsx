@@ -5,18 +5,18 @@ import "../styles/pages/_productDetail.scss";
 const ProductDetail = () => {
   const { id } = useParams();
 
+  // ✅ temporal: mock con tu schema (luego viene del backend)
   const product = useMemo(() => {
     const pid = Number(id);
     return {
       id: pid,
-      name: `Product ${pid}`,
+      title: `Product ${pid}`,
       price: 120 + (pid - 1) * 18,
-      rating: 4,
-      stock: 12,
-      image:
-        "https://s1.significados.com/foto/producto-og.jpg",
       description:
-        "This is the full product page. Later this will come from your backend (MongoDB API).",
+        "Full product page. Here you show full description, specs, seller info, reviews etc. Later it comes from MongoDB API.",
+      category: pid % 2 === 0 ? "Smartphones" : "Accessories",
+      image:
+        "https://images.unsplash.com/photo-1512446816042-444d64126780?auto=format&fit=crop&w=1400&q=70",
     };
   }, [id]);
 
@@ -25,28 +25,23 @@ const ProductDetail = () => {
       <div className="pdetail__crumbs">
         <Link to="/">Home</Link>
         <span>/</span>
-        <span>Product</span>
+        <span>{product.category}</span>
         <span>/</span>
-        <b>{product.name}</b>
+        <b>{product.title}</b>
       </div>
 
       <div className="pdetail__grid">
         <div className="pdetail__img">
-          <img src={product.image} alt={product.name} />
+          <img src={product.image} alt={product.title} />
         </div>
 
         <div className="pdetail__info">
-          <h1 className="pdetail__title">{product.name}</h1>
+          <h1 className="pdetail__title">{product.title}</h1>
 
           <div className="pdetail__meta">
-            <span className="stars">
-              <i className="bi bi-star-fill" />
-              <b>{product.rating}</b>
-              <span className="muted">/ 5</span>
+            <span className="muted">
+              <i className="bi bi-tag" /> {product.category}
             </span>
-
-            <span className="muted">•</span>
-            <span className="muted">Stock: {product.stock}</span>
           </div>
 
           <div className="pdetail__price">${product.price.toFixed(2)}</div>
