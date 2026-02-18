@@ -1,33 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/pages/_home.scss";
 import ProductModal from "../components/productModal/ProductModal";
+import { useStore } from "../store/storeProvider";
+import { getProducts } from "../services/productService";
+import FiltersPanel from "../components/filters/filtersPanel";
 
 const Home = () => {
+  const { searchQuery, filters, toggleCategory, clearFilters } = useStore();
+
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [mobileFilters, setMobileFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // ✅ mock products (schema real: title/category/description/image/price)
-  // + fallback (name/rating) para no romper mientras migras
-  const products = useMemo(
-    () =>
-      Array.from({ length: 9 }).map((_, idx) => ({
-        id: idx + 1,
-        title: `Product ${idx + 1}`,
-        price: 120 + idx * 18,
-        description:
-          "Quick preview description. Full details will be available in product page and API later.",
-        category: idx % 2 === 0 ? "Smartphones" : "Accessories",
-        image:
-          "https://images.unsplash.com/photo-1512446816042-444d64126780?auto=format&fit=crop&w=1200&q=70",
-        // opcional (si tu UI lo usa todavía)
-        rating: 4,
-        // compat por si aún tienes código que usa name
-        name: `Product ${idx + 1}`,
-      })),
-    []
-  );
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      setLoading(true);
+      const data = await getProducts();
+      if (!mounted) return;
+      setProducts(data);
+      setLoading(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -40,122 +43,172 @@ const Home = () => {
     else setFiltersOpen((v) => !v);
   };
 
-  const getTitle = (p) => p.title ?? p.name ?? "Product";
-  const getCategory = (p) => p.category ?? "—";
+  const availableCategories = useMemo(() => {
+    const set = new Set(products.map((p) => p.category).filter(Boolean));
+    return Array.from(set);
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    const min = filters.priceMin === "" ? null : Number(filters.priceMin);
+    const max = filters.priceMax === "" ? null : Number(filters.priceMax);
+
+    let result = products;
+
+    // search
+    if (q) {
+      result = result.filter((p) => {
+        const title = (p.title || "").toLowerCase();
+        const desc = (p.description || "").toLowerCase();
+        const cat = (p.category || "").toLowerCase();
+        return title.includes(q) || desc.includes(q) || cat.includes(q);
+      });
+    }
+
+    // categories
+    if (filters.categories.length) {
+      result = result.filter((p) => filters.categories.includes(p.category));
+    }
+
+    // price
+    if (min !== null && !Number.isNaN(min)) {
+      result = result.filter((p) => Number(p.price || 0) >= min);
+    }
+    if (max !== null && !Number.isNaN(max)) {
+      result = result.filter((p) => Number(p.price || 0) <= max);
+    }
+
+    // sort
+    const sorted = [...result];
+    switch (filters.sort) {
+      case "price_asc":
+        sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        break;
+      case "price_desc":
+        sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        break;
+      case "title_asc":
+        sorted.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+        break;
+      case "title_desc":
+        sorted.sort((a, b) => String(b.title).localeCompare(String(a.title)));
+        break;
+      default:
+        sorted.sort((a, b) => a.id - b.id);
+    }
+
+    return sorted;
+  }, [products, searchQuery, filters]);
 
   return (
     <div className="shop">
-      {/* categories bar */}
+      {/* categories bar (sincronizada con filtros) */}
       <div className="shop__cats">
-        <button className="cat active">All</button>
-        <button className="cat">Smartphones</button>
-        <button className="cat">Laptops</button>
-        <button className="cat">Tablets</button>
-        <button className="cat">Accessories</button>
-        <button className="cat">Smart Home</button>
-        <button className="cat">Games</button>
+        <button
+          className={`cat ${filters.categories.length === 0 ? "active" : ""}`}
+          onClick={clearFilters}
+          type="button"
+        >
+          All
+        </button>
+
+        {availableCategories.map((cat) => {
+          const isActive = filters.categories.includes(cat);
+
+          return (
+            <button
+              key={cat}
+              className={`cat ${isActive ? "active" : ""}`}
+              onClick={() => toggleCategory(cat)}
+              type="button"
+            >
+              {cat}
+            </button>
+          );
+        })}
       </div>
 
       <div className={`shop__body ${filtersOpen ? "" : "filters-collapsed"}`}>
         {/* desktop filters */}
         {!isMobile && (
           <aside className="filters">
-            <div className="filters__top">
-              <div className="filters__title">Filters</div>
-              <div className="filters__hint">Refine results</div>
-            </div>
-            <FiltersContent />
+            <FiltersPanel availableCategories={availableCategories} />
           </aside>
         )}
 
-        {/* catalog */}
         <section className="catalog">
           <div className="catalog__top">
-            <button
-              className="filtersToggle"
-              onClick={onFiltersClick}
-              type="button"
-            >
+            <button className="filtersToggle" onClick={onFiltersClick} type="button">
               <i className="bi bi-sliders" />
               <span>Filters</span>
             </button>
 
             <div className="catalog__meta">
-              Showing <b>1-9</b> of <b>156</b> products
-            </div>
-
-            <div className="catalog__sort">
-              <span>Sort:</span>
-              <select>
-                <option>Most popular</option>
-                <option>Best rating</option>
-                <option>Lowest price</option>
-                <option>Highest price</option>
-              </select>
+              {loading ? (
+                <span>Loading products...</span>
+              ) : (
+                <>
+                  Showing <b>{filteredProducts.length}</b> product(s)
+                </>
+              )}
             </div>
           </div>
 
           <div className="grid">
-            {products.map((p) => (
-              <article
-                className="card"
-                key={p.id}
-                onClick={() => setSelectedProduct(p)}
-              >
-                <div className="card__img">
-                  <img src={p.image} alt={getTitle(p)} loading="lazy" />
-                </div>
-
-                <div className="card__body">
-                  <div className="card__title">{getTitle(p)}</div>
-
-                  <div className="card__meta">
-                    {/* ✅ si quieres mantener rating, lo dejamos */}
-                    {typeof p.rating === "number" ? (
-                      <>
-                        <span className="stars">
-                          <i className="bi bi-star-fill" />
-                          {p.rating}
-                        </span>
-                        <span className="dot">•</span>
-                      </>
-                    ) : null}
-
-                    {/* ✅ category del schema real */}
-                    <span className="dot">{getCategory(p)}</span>
-                    <span className="dot">•</span>
-
-                    {/* ✅ price seguro */}
-                    <span className="price">
-                      ${Number(p.price || 0).toFixed(2)}
-                    </span>
+            {loading
+              ? Array.from({ length: 9 }).map((_, i) => (
+                  <div className="card skeleton" key={i}>
+                    <div className="card__img" />
+                    <div className="card__body">
+                      <div className="skLine" />
+                      <div className="skLine sm" />
+                      <div className="skBtn" />
+                    </div>
                   </div>
+                ))
+              : filteredProducts.map((p) => (
+                  <article className="card" key={p.id} onClick={() => setSelectedProduct(p)}>
+                    <div className="card__img">
+                      <img src={p.image} alt={p.title} loading="lazy" />
+                    </div>
 
-                  <button
-                    className="card__btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedProduct(p);
-                    }}
-                    type="button"
-                  >
-                    <i className="bi bi-eye" />
-                    Quick view
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <div className="card__body">
+                      <div className="card__title">{p.title}</div>
+
+                      <div className="card__meta">
+                        <span className="dot">{p.category}</span>
+                        <span className="dot">•</span>
+                        <span className="price">${Number(p.price || 0).toFixed(2)}</span>
+                      </div>
+
+                      <button
+                        className="card__btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProduct(p);
+                        }}
+                        type="button"
+                      >
+                        <i className="bi bi-eye" />
+                        Quick view
+                      </button>
+                    </div>
+                  </article>
+                ))}
           </div>
+
+          {!loading && filteredProducts.length === 0 && (
+            <div style={{ padding: 14, color: "var(--muted)", fontWeight: 900 }}>
+              No products match your filters.
+            </div>
+          )}
         </section>
       </div>
 
       {/* mobile filters panel */}
       {mobileFilters && (
         <div className="filtersModal">
-          <div
-            className="filtersModal__overlay"
-            onClick={() => setMobileFilters(false)}
-          />
+          <div className="filtersModal__overlay" onClick={() => setMobileFilters(false)} />
 
           <div className="filtersModal__panel">
             <div className="filtersModal__header">
@@ -169,7 +222,7 @@ const Home = () => {
               </button>
             </div>
 
-            <FiltersContent />
+            <FiltersPanel availableCategories={availableCategories} />
 
             <button
               className="filtersModal__apply"
@@ -184,62 +237,10 @@ const Home = () => {
 
       {/* product modal */}
       {selectedProduct && (
-        <ProductModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
+        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
     </div>
   );
 };
-
-const FiltersContent = () => (
-  <>
-    <div className="filters__section">
-      <div className="filters__label">Category</div>
-      <label className="check">
-        <input type="checkbox" /> Smartphones
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Laptops
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Tablets
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Accessories
-      </label>
-    </div>
-
-    <div className="filters__section">
-      <div className="filters__label">Brand</div>
-      <label className="check">
-        <input type="checkbox" /> Apple
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Samsung
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Xiaomi
-      </label>
-      <label className="check">
-        <input type="checkbox" /> Dell
-      </label>
-    </div>
-
-    <div className="filters__section">
-      <div className="filters__label">Rating</div>
-      <label className="radio">
-        <input name="r" type="radio" /> 5 stars
-      </label>
-      <label className="radio">
-        <input name="r" type="radio" /> 4+ stars
-      </label>
-      <label className="radio">
-        <input name="r" type="radio" /> 3+ stars
-      </label>
-    </div>
-  </>
-);
 
 export default Home;

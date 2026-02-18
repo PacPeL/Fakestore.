@@ -1,33 +1,50 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const StoreContext = createContext();
-
 export const useStore = () => useContext(StoreContext);
 
 const CART_KEY = "fakestore_cart";
 
+const defaultFilters = {
+  categories: [], // ["Smartphones", "Laptops"...]
+  priceMin: "",
+  priceMax: "",
+  sort: "popular", // popular | price_asc | price_desc | title_asc | title_desc
+};
+
 export const StoreProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // cargar carrito al iniciar
+  // ✅ filtros globales
+  const [filters, setFilters] = useState(defaultFilters);
+
+  // ===== cart persist =====
   useEffect(() => {
-    const saved = localStorage.getItem(CART_KEY);
-    if (saved) setCart(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem(CART_KEY);
+      if (saved) setCart(JSON.parse(saved));
+    } catch {
+      setCart([]);
+    }
   }, []);
 
-  // guardar automáticamente
   useEffect(() => {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {}
   }, [cart]);
 
-  // agregar producto
+  // ===== cart actions =====
   const addToCart = (product, qty = 1) => {
+    const safeQty = Math.max(1, Number(qty) || 1);
+
     setCart((prev) => {
       const exists = prev.find((p) => p.id === product.id);
 
       if (exists) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, qty: p.qty + qty } : p
+          p.id === product.id ? { ...p, qty: p.qty + safeQty } : p
         );
       }
 
@@ -35,35 +52,49 @@ export const StoreProvider = ({ children }) => {
         ...prev,
         {
           id: product.id,
-          title: product.title ?? product.name,
-          price: product.price,
+          title: product.title ?? product.name ?? "Product",
+          price: Number(product.price || 0),
           image: product.image,
-          qty,
+          qty: safeQty,
+          category: product.category,
         },
       ];
     });
   };
 
-  // eliminar
-  const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((p) => p.id !== id));
-  };
+  const removeFromCart = (id) => setCart((prev) => prev.filter((p) => p.id !== id));
 
-  // actualizar cantidad
   const updateQty = (id, qty) => {
-    setCart((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, qty } : p))
-    );
+    const safeQty = Math.max(1, Number(qty) || 1);
+    setCart((prev) => prev.map((p) => (p.id === id ? { ...p, qty: safeQty } : p)));
   };
 
   const clearCart = () => setCart([]);
 
-  const totalItems = cart.reduce((a, b) => a + b.qty, 0);
-  const totalPrice = cart.reduce((a, b) => a + b.qty * b.price, 0);
+  const totalItems = useMemo(() => cart.reduce((a, b) => a + b.qty, 0), [cart]);
+  const totalPrice = useMemo(() => cart.reduce((a, b) => a + b.qty * b.price, 0), [cart]);
+
+  // ===== filters actions =====
+  const toggleCategory = (cat) => {
+    setFilters((prev) => {
+      const has = prev.categories.includes(cat);
+      return {
+        ...prev,
+        categories: has ? prev.categories.filter((c) => c !== cat) : [...prev.categories, cat],
+      };
+    });
+  };
+
+  const setPriceMin = (v) => setFilters((prev) => ({ ...prev, priceMin: v }));
+  const setPriceMax = (v) => setFilters((prev) => ({ ...prev, priceMax: v }));
+  const setSort = (v) => setFilters((prev) => ({ ...prev, sort: v }));
+
+  const clearFilters = () => setFilters(defaultFilters);
 
   return (
     <StoreContext.Provider
       value={{
+        // cart
         cart,
         addToCart,
         removeFromCart,
@@ -71,6 +102,18 @@ export const StoreProvider = ({ children }) => {
         clearCart,
         totalItems,
         totalPrice,
+
+        // search
+        searchQuery,
+        setSearchQuery,
+
+        // filters
+        filters,
+        toggleCategory,
+        setPriceMin,
+        setPriceMax,
+        setSort,
+        clearFilters,
       }}
     >
       {children}

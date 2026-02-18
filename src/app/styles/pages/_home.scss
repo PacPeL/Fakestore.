@@ -42,31 +42,45 @@
 
 .shop__body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 16px;
   margin-top: 16px;
   align-items: start;
   transition: grid-template-columns 260ms ease;
 }
 
+/* collapsed: mantenemos la animación pero sin “cortar” contenido */
 .shop__body.filters-collapsed {
   grid-template-columns: 0 1fr;
 }
 
 .filters {
+  width: 300px;
+  min-width: 280px;
+  max-width: 320px;
+
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: var(--shadow);
-  overflow: hidden;
+
+  overflow: visible; /* ✅ esto evita que se “corte” el rango de precio */
   transition: opacity 200ms ease, transform 200ms ease;
 }
 
+/* cuando colapsa */
 .shop__body.filters-collapsed .filters {
   opacity: 0;
   transform: translateX(-8px);
   pointer-events: none;
+}
+
+/* inputs dentro del sidebar */
+.filters input,
+.filters select {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filters__top {
@@ -106,7 +120,7 @@
 /* catalog top bar */
 .catalog__top {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
 
@@ -138,21 +152,6 @@
 }
 
 .catalog__meta { color: var(--muted); }
-
-.catalog__sort {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  color: var(--muted);
-
-  select {
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    outline: none;
-  }
-}
 
 /* grid */
 .grid {
@@ -320,4 +319,57 @@
   .shop__body { grid-template-columns: 1fr; }
   .filters { display: none; }
   .catalog__top { grid-template-columns: 1fr; }
+}
+
+/* skeleton */
+.card.skeleton {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.card.skeleton .card__img {
+  height: 170px;
+  background: #e2e8f0;
+}
+
+.skLine {
+  height: 14px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  margin-bottom: 10px;
+}
+
+.skLine.sm { width: 70%; }
+
+.skBtn {
+  height: 38px;
+  border-radius: 12px;
+  background: #e2e8f0;
+}
+
+.card.skeleton .card__img,
+.card.skeleton .skLine,
+.card.skeleton .skBtn {
+  position: relative;
+  overflow: hidden;
+}
+
+.card.skeleton .card__img::after,
+.card.skeleton .skLine::after,
+.card.skeleton .skBtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 1.1s infinite;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
 }

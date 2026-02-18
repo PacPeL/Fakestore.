@@ -3,7 +3,7 @@ import { useStore } from "../../store/storeProvider";
 import "./header.scss";
 
 const Header = () => {
-  const { totalItems } = useStore();
+  const { totalItems, searchQuery, setSearchQuery } = useStore();
 
   return (
     <header className="topbar">
@@ -23,7 +23,13 @@ const Header = () => {
       </div>
 
       <div className="topbar__search">
-        <input type="text" placeholder="Search products..." />
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
         <button type="button" aria-label="Search">
           <i className="bi bi-search" />
         </button>
